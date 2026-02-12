@@ -1,4 +1,4 @@
-# Nats Playground
+# NATS Playground
 
 A collection of hands-on experiments with [nats.py](https://nats-io.github.io/nats.py/) to explore distributed messaging patterns, scalability, and asynchronous communication.
 
