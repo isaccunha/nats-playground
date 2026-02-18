@@ -22,7 +22,7 @@ sequenceDiagram
     Client->>NATS: close()
 ```
 
-- **Workflow:** The diagram above illustrates a simple loopback flow. The client connects to the server, subscribes to the ``hello`` subject, publishes a message to that same subject, and confirms that it receives its own message.
+- **Workflow:** The diagram above illustrates a simple loopback flow. The client connects to the server, subscribes to the `hello` subject, publishes a message to that same subject, and confirms that it receives its own message.
 
 ### 2. Native Load Balancer (Queue Groups)
 
@@ -54,7 +54,7 @@ sequenceDiagram
     NATS-->>W3: deliver
 ```
 
-- **Workflow:** The diagram depicts the distribution logic. The publisher sends multiple messages to the ``logs.process`` subject. The NATS server acts as a load balancer, routing each message to only one of the available workers in the ``log_workers`` queue group, ensuring the workload is shared and not duplicated.
+- **Workflow:** The diagram depicts the distribution logic. The publisher sends multiple messages to the `logs.process` subject. The NATS server acts as a load balancer, routing each message to only one of the available workers in the `log_workers` queue group, ensuring the workload is shared and not duplicated.
 
 ### 3. Asynchronous RPC (Request-Reply Pattern)
 
@@ -81,7 +81,7 @@ sequenceDiagram
     NATS-->>Client: deliver reply
 ```
 
-- **Workflow:** The diagram shows the request lifecycle. First, the ``Math Service`` subscribes to the topic. When the client sends a request, NATS routes it to the service. The service computes the result and sends a reply, which NATS delivers back to the specific client's inbox.
+- **Workflow:** The diagram shows the request lifecycle. First, the `Math Service` subscribes to the topic. When the client sends a request, NATS routes it to the service. The service computes the result and sends a reply, which NATS delivers back to the specific client's inbox.
 
 ### 4. JetStream & Durable Consumers (Persistence)
 
@@ -111,7 +111,7 @@ sequenceDiagram
     Consumer->>JS: ack()
 ```
 
-- **Workflow:** The diagram highlights the temporal separation between systems. The Publisher stores messages in the Stream while the Consumer is offline. When the ``Durable Consumer`` eventually connects, it retrieves the stored history from the Stream and acknowledges processing.
+- **Workflow:** The diagram highlights the temporal separation between systems. The Publisher stores messages in the Stream while the Consumer is offline. When the `Durable Consumer` eventually connects, it retrieves the stored history from the Stream and acknowledges processing.
 
 ### 5. Key-Value Store (Real-time State Management)
 
@@ -149,7 +149,38 @@ sequenceDiagram
 
 *Note on Experimental Status:* The Key-Value abstraction in `nats-py` is currently experimental. In this specific demonstration, the watcher captures the state change event but may close the connection immediately after the first update, rather than maintaining a persistent stream, reflecting the current stability of this feature in the Python client.
 
-## Installation
-```bash
-pip install nats-py
+### 6. IoT Integration (MQTT Ingress)
+
+A demonstration of NATS's polyglot capabilities, acting as a native MQTT broker to bridge edge devices with backend microservices.
+
+- **The Scenario:** An IoT temperature sensor (simulated using `paho-mqtt`) sends data via the MQTT protocol, which is instantaneously received and processed by a backend service using the native NATS protocol.
+
+- **Implementation:**
+    - **Sensor (MQTT):** Connects to the NATS server on port `1883` (standard MQTT port) and publishes JSON data to the `device/temp` topic.
+    - **Backend (NATS):** Connects using the standard NATS client and subscribes to `device.temp`.
+
+- **Key Insight:** Highlights the seamless interoperability without external gateways. NATS automatically translates the protocols and maps the subjects (converting MQTT's `/` separator to NATS's `.`), allowing edge devices and cloud services to communicate natively.
+
+```mermaid
+sequenceDiagram
+    participant Sensor as IoT Sensor (MQTT)
+    participant MQTT as NATS MQTT Ingress
+    participant NATS as NATS Core
+    participant Backend as Backend Service (NATS)
+
+    Backend->>NATS: subscribe("device.temp")
+    Sensor->>MQTT: publish("device/temp", JSON)
+    MQTT->>NATS: map topic → subject ("device.temp")
+    NATS-->>Backend: deliver("device.temp", JSON)
 ```
+
+- **Workflow:** The diagram illustrates the cross-protocol bridging. The Backend initiates a subscription to the native NATS subject `device.temp`. When the IoT Sensor publishes to the MQTT topic `device/temp`, the NATS server internally translates the topic separators (mapping `/` to `.`) and delivers the payload to the NATS subscriber, enabling transparent communication between the two protocols.
+
+## Installation
+
+To run the experiments, you will need the NATS client and the MQTT library (for the IoT demo).
+
+```bash
+pip install nats-py paho-mqtt
+```
+
